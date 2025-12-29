@@ -22,7 +22,7 @@ const wss = new WebSocketServer({ server });
 app.use(express.static(join(__dirname, 'public')));
 
 // Config
-const MAX_MESSAGES = 200;
+const MAX_MESSAGES = 100;
 const CONVERSATIONS_DIR = join(__dirname, 'conversations');
 const ADMIN_KEY = process.env.ADMIN_KEY || 'stop123';
 
