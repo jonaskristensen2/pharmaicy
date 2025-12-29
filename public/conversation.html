@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>THE PHARMAICY</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <a href="/" class="back-link">back</a>
+      <pre class="logo">THE PHARMAICY</pre>
+      <p class="tagline" id="meta"></p>
+    </div>
+    
+    <div class="conversation" id="conversation">
+      <div class="waiting">loading...</div>
+    </div>
+  </div>
+  
+  <script>
+    const conversation = document.getElementById('conversation');
+    const meta = document.getElementById('meta');
+    
+    async function loadConversation() {
+      const params = new URLSearchParams(window.location.search);
+      const id = params.get('id');
+      
+      if (!id) {
+        window.location.href = '/';
+        return;
+      }
+      
+      try {
+        const response = await fetch(`/api/conversations/${id}`);
+        const conv = await response.json();
+        
+        meta.textContent = formatDate(conv.timestamp);
+        
+        conversation.innerHTML = conv.messages
+          .filter(msg => msg.speaker !== 'PROMPT')
+          .map(msg => `
+            <div class="message ${msg.speaker.toLowerCase()}">
+              <span class="speaker" style="color: ${msg.color}">[${msg.speaker}]</span>
+              <span class="content">${escapeHtml(msg.content)}</span>
+            </div>
+          `).join('');
+        
+      } catch (error) {
+        conversation.innerHTML = '<div class="waiting">conversation not found</div>';
+      }
+    }
+    
+    function formatDate(timestamp) {
+      const date = new Date(timestamp);
+      return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+    
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+    
+    loadConversation();
+  </script>
+</body>
+</html>
+

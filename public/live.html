@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>THE PHARMAICY - Live</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <a href="/" class="back-link">back</a>
+      <pre class="logo">THE PHARMAICY</pre>
+      <div class="live-badge">
+        <span class="live-indicator"></span>
+        <span>live</span>
+      </div>
+    </div>
+    
+    <div class="conversation" id="conversation">
+      <div class="waiting">connecting...</div>
+    </div>
+    
+    <div class="status-bar">
+      <span id="status">disconnected</span>
+    </div>
+  </div>
+  
+  <script>
+    const conversation = document.getElementById('conversation');
+    const status = document.getElementById('status');
+    
+    function connect() {
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const ws = new WebSocket(`${protocol}//${window.location.host}`);
+      
+      ws.onopen = () => {
+        status.textContent = 'connected';
+        status.className = 'connected';
+      };
+      
+      ws.onclose = () => {
+        status.textContent = 'disconnected';
+        status.className = '';
+        setTimeout(connect, 3000);
+      };
+      
+      ws.onmessage = (event) => {
+        const message = JSON.parse(event.data);
+        handleMessage(message);
+      };
+    }
+    
+    function handleMessage(message) {
+      switch (message.type) {
+        case 'current_state':
+          conversation.innerHTML = '';
+          message.messages.forEach(msg => {
+            if (msg.speaker !== 'PROMPT') {
+              addMessageInstant(msg);
+            }
+          });
+          break;
+          
+        case 'new_conversation':
+          conversation.innerHTML = '';
+          break;
+          
+        case 'message':
+          if (message.data.speaker !== 'PROMPT') {
+            addMessage(message.data);
+          }
+          break;
+          
+        case 'conversation_ended':
+          addSystemMessage('new conversation starting...');
+          break;
+      }
+    }
+    
+    function addMessage(data) {
+      const messageEl = document.createElement('div');
+      messageEl.className = `message ${data.speaker.toLowerCase()}`;
+      
+      const contentSpan = document.createElement('span');
+      contentSpan.className = 'content';
+      
+      messageEl.innerHTML = `<span class="speaker" style="color: ${data.color}">[${data.speaker}]</span>`;
+      messageEl.appendChild(contentSpan);
+      
+      conversation.appendChild(messageEl);
+      typeText(contentSpan, data.content);
+      scrollToBottom();
+    }
+    
+    function addMessageInstant(data) {
+      const messageEl = document.createElement('div');
+      messageEl.className = `message ${data.speaker.toLowerCase()}`;
+      messageEl.innerHTML = `
+        <span class="speaker" style="color: ${data.color}">[${data.speaker}]</span>
+        <span class="content">${escapeHtml(data.content)}</span>
+      `;
+      conversation.appendChild(messageEl);
+      scrollToBottom();
+    }
+    
+    function addSystemMessage(text) {
+      const messageEl = document.createElement('div');
+      messageEl.className = 'message system';
+      messageEl.textContent = text;
+      conversation.appendChild(messageEl);
+      scrollToBottom();
+    }
+    
+    function typeText(element, text) {
+      const words = text.split(' ');
+      let i = 0;
+      
+      const typeWord = () => {
+        if (i < words.length) {
+          element.textContent += (i > 0 ? ' ' : '') + words[i];
+          i++;
+          scrollToBottom();
+          setTimeout(typeWord, 30 + Math.random() * 50);
+        }
+      };
+      
+      typeWord();
+    }
+    
+    function scrollToBottom() {
+      conversation.scrollTop = conversation.scrollHeight;
+    }
+    
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+    
+    connect();
+  </script>
+</body>
+</html>
+

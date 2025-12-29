@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin - THE PHARMAICY</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #0a0a0a;
+      color: #e8e8e8;
+      font-family: 'Courier New', monospace;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .admin {
+      max-width: 400px;
+      width: 100%;
+    }
+    h1 {
+      font-size: 14px;
+      letter-spacing: 4px;
+      text-align: center;
+      margin-bottom: 30px;
+      font-weight: normal;
+    }
+    .key-input {
+      margin-bottom: 20px;
+    }
+    label {
+      display: block;
+      font-size: 11px;
+      color: #888;
+      margin-bottom: 8px;
+      letter-spacing: 1px;
+    }
+    input {
+      width: 100%;
+      background: transparent;
+      border: 1px solid #333;
+      color: #e8e8e8;
+      padding: 12px;
+      font-family: inherit;
+      font-size: 14px;
+    }
+    .buttons {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 30px;
+    }
+    button {
+      flex: 1;
+      background: transparent;
+      border: 1px solid #333;
+      color: #e8e8e8;
+      padding: 14px;
+      font-family: inherit;
+      font-size: 12px;
+      letter-spacing: 2px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    button:hover {
+      background: #e8e8e8;
+      color: #0a0a0a;
+    }
+    button.stop { border-color: #ff6b6b; }
+    button.stop:hover { background: #ff6b6b; }
+    button.start { border-color: #7bed9f; }
+    button.start:hover { background: #7bed9f; }
+    .status {
+      border: 1px solid #333;
+      padding: 20px;
+    }
+    .status-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      margin-bottom: 8px;
+    }
+    .status-row:last-child { margin-bottom: 0; }
+    .status-label { color: #888; }
+    .status-value { color: #e8e8e8; }
+    .status-value.running { color: #7bed9f; }
+    .status-value.stopped { color: #ff6b6b; }
+    .message {
+      margin-top: 20px;
+      padding: 12px;
+      font-size: 12px;
+      text-align: center;
+    }
+    .message.success { background: rgba(123, 237, 159, 0.1); color: #7bed9f; }
+    .message.error { background: rgba(255, 107, 107, 0.1); color: #ff6b6b; }
+    .back {
+      display: block;
+      text-align: center;
+      margin-top: 30px;
+      color: #888;
+      font-size: 11px;
+      text-decoration: none;
+    }
+    .back:hover { color: #e8e8e8; }
+  </style>
+</head>
+<body>
+  <div class="admin">
+    <h1>ADMIN</h1>
+    
+    <div class="key-input">
+      <label>admin key</label>
+      <input type="password" id="key" placeholder="enter key" value="stop123">
+    </div>
+    
+    <div class="buttons">
+      <button class="stop" onclick="stop()">STOP</button>
+      <button class="start" onclick="start()">START</button>
+    </div>
+    
+    <div class="status" id="status">
+      <div class="status-row">
+        <span class="status-label">status</span>
+        <span class="status-value" id="running">-</span>
+      </div>
+      <div class="status-row">
+        <span class="status-label">messages</span>
+        <span class="status-value" id="messages">-</span>
+      </div>
+      <div class="status-row">
+        <span class="status-label">viewers</span>
+        <span class="status-value" id="clients">-</span>
+      </div>
+    </div>
+    
+    <div class="message" id="message" style="display: none;"></div>
+    
+    <a href="/" class="back">back to site</a>
+  </div>
+  
+  <script>
+    const keyInput = document.getElementById('key');
+    const messageEl = document.getElementById('message');
+    
+    function getKey() {
+      return keyInput.value;
+    }
+    
+    function showMessage(text, type) {
+      messageEl.textContent = text;
+      messageEl.className = 'message ' + type;
+      messageEl.style.display = 'block';
+      setTimeout(() => { messageEl.style.display = 'none'; }, 3000);
+    }
+    
+    async function stop() {
+      try {
+        const res = await fetch('/api/admin/stop?key=' + getKey());
+        const data = await res.json();
+        if (res.ok) {
+          showMessage('Conversation stopped', 'success');
+          refreshStatus();
+        } else {
+          showMessage(data.error || 'Failed', 'error');
+        }
+      } catch (e) {
+        showMessage('Error: ' + e.message, 'error');
+      }
+    }
+    
+    async function start() {
+      try {
+        const res = await fetch('/api/admin/start?key=' + getKey());
+        const data = await res.json();
+        if (res.ok) {
+          showMessage(data.message, 'success');
+          refreshStatus();
+        } else {
+          showMessage(data.error || 'Failed', 'error');
+        }
+      } catch (e) {
+        showMessage('Error: ' + e.message, 'error');
+      }
+    }
+    
+    async function refreshStatus() {
+      try {
+        const res = await fetch('/api/admin/status?key=' + getKey());
+        if (res.ok) {
+          const data = await res.json();
+          document.getElementById('running').textContent = data.running ? 'running' : 'stopped';
+          document.getElementById('running').className = 'status-value ' + (data.running ? 'running' : 'stopped');
+          document.getElementById('messages').textContent = data.messageCount + ' / ' + data.maxMessages;
+          document.getElementById('clients').textContent = data.clients;
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    
+    // Refresh status every 2 seconds
+    refreshStatus();
+    setInterval(refreshStatus, 2000);
+  </script>
+</body>
+</html>
+

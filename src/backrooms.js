@@ -28,25 +28,39 @@ export class Backrooms {
     return candidates[Math.floor(Math.random() * candidates.length)];
   }
 
+  // Clean response of any accidental name tags
+  cleanResponse(text, speakerName) {
+    let cleaned = text.trim();
+    // Remove any variation of speaker tag at the start
+    const patterns = [
+      new RegExp(`^\\[${speakerName}\\]:?\\s*`, 'i'),
+      new RegExp(`^${speakerName}:?\\s*`, 'i'),
+      /^\[[\w]+\]:?\s*/,
+    ];
+    for (const pattern of patterns) {
+      cleaned = cleaned.replace(pattern, '');
+    }
+    return cleaned.trim();
+  }
+
   // Generate the next message in the conversation
   async generateNext() {
     const speaker = this.pickNextSpeaker();
     const history = this.formatHistory();
     
-    // Add context about who's in the conversation
-    const participantNames = this.participants.map(p => p.name).join(', ');
     const contextPrompt = `${speaker.systemPrompt}
 
-You are [${speaker.name}] in a conversation with: ${participantNames}.
-The conversation has been going organically. Respond naturally to what was just said, or take it in a new direction if it feels right. Keep your response concise - this is a flowing conversation, not a monologue.`;
+Others in this conversation: COCAINE, WEED, AYAHUASCA, KETAMINE, ALCOHOL.
+Respond to what was just said. 1-3 sentences only. Do NOT start with your name.`;
 
     try {
       const response = await chat(contextPrompt, history, speaker.params);
+      const cleaned = this.cleanResponse(response, speaker.name);
       
       this.lastSpeaker = speaker.name;
       const message = {
         speaker: speaker.name,
-        content: response.trim(),
+        content: cleaned,
         color: speaker.color,
         timestamp: Date.now()
       };
