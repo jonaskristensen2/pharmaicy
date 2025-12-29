@@ -7,6 +7,7 @@ import { writeFileSync, readFileSync, existsSync, mkdirSync } from 'fs';
 import dotenv from 'dotenv';
 import { Backrooms } from './src/backrooms.js';
 import { getRandomPrompt } from './src/prompts.js';
+import * as db from './src/database.js';
 
 dotenv.config();
 
@@ -23,9 +24,9 @@ app.use(express.static(join(__dirname, 'public')));
 // Config
 const MAX_MESSAGES = 200;
 const CONVERSATIONS_DIR = join(__dirname, 'conversations');
-const ADMIN_KEY = process.env.ADMIN_KEY || 'stop123'; // Change this or set in .env
+const ADMIN_KEY = process.env.ADMIN_KEY || 'stop123';
 
-// Ensure conversations directory exists
+// Ensure conversations directory exists (fallback)
 if (!existsSync(CONVERSATIONS_DIR)) {
   mkdirSync(CONVERSATIONS_DIR);
 }
@@ -35,9 +36,10 @@ let backrooms = new Backrooms();
 let currentConversation = null;
 let conversationRunning = false;
 let clients = new Set();
+let useDatabase = false;
 
-// Load saved conversations index
-function getConversationsList() {
+// File-based storage (fallback)
+function getConversationsListFile() {
   const indexPath = join(CONVERSATIONS_DIR, 'index.json');
   if (existsSync(indexPath)) {
     return JSON.parse(readFileSync(indexPath, 'utf8'));
@@ -45,12 +47,12 @@ function getConversationsList() {
   return [];
 }
 
-function saveConversationsList(list) {
+function saveConversationsListFile(list) {
   const indexPath = join(CONVERSATIONS_DIR, 'index.json');
   writeFileSync(indexPath, JSON.stringify(list, null, 2));
 }
 
-function saveConversation(conversation) {
+function saveConversationFile(conversation) {
   const id = Date.now().toString();
   const filename = `${id}.json`;
   
@@ -64,8 +66,7 @@ function saveConversation(conversation) {
   
   writeFileSync(join(CONVERSATIONS_DIR, filename), JSON.stringify(data, null, 2));
   
-  // Update index
-  const list = getConversationsList();
+  const list = getConversationsListFile();
   list.unshift({
     id,
     prompt: conversation.prompt,
@@ -73,17 +74,13 @@ function saveConversation(conversation) {
     messageCount: data.messageCount
   });
   
-  // Keep only last 50 conversations
-  if (list.length > 50) {
-    list.pop();
-  }
-  
-  saveConversationsList(list);
+  if (list.length > 50) list.pop();
+  saveConversationsListFile(list);
   
   return id;
 }
 
-function getConversation(id) {
+function getConversationFile(id) {
   const filepath = join(CONVERSATIONS_DIR, `${id}.json`);
   if (existsSync(filepath)) {
     return JSON.parse(readFileSync(filepath, 'utf8'));
@@ -91,17 +88,48 @@ function getConversation(id) {
   return null;
 }
 
+// Unified storage functions
+async function getConversationsList() {
+  if (useDatabase) {
+    return await db.getConversationsList();
+  }
+  return getConversationsListFile();
+}
+
+async function saveConversation(conversation) {
+  if (useDatabase) {
+    return await db.saveConversation(conversation.prompt, conversation.messages);
+  }
+  return saveConversationFile(conversation);
+}
+
+async function getConversation(id) {
+  if (useDatabase) {
+    return await db.getConversation(id);
+  }
+  return getConversationFile(id);
+}
+
 // API endpoints
-app.get('/api/conversations', (req, res) => {
-  res.json(getConversationsList());
+app.get('/api/conversations', async (req, res) => {
+  try {
+    const list = await getConversationsList();
+    res.json(list);
+  } catch (e) {
+    res.status(500).json({ error: 'Failed to get conversations' });
+  }
 });
 
-app.get('/api/conversations/:id', (req, res) => {
-  const conversation = getConversation(req.params.id);
-  if (conversation) {
-    res.json(conversation);
-  } else {
-    res.status(404).json({ error: 'Not found' });
+app.get('/api/conversations/:id', async (req, res) => {
+  try {
+    const conversation = await getConversation(req.params.id);
+    if (conversation) {
+      res.json(conversation);
+    } else {
+      res.status(404).json({ error: 'Not found' });
+    }
+  } catch (e) {
+    res.status(500).json({ error: 'Failed to get conversation' });
   }
 });
 
@@ -117,33 +145,28 @@ app.get('/api/current', (req, res) => {
   }
 });
 
-// Admin endpoints to control the conversation
+// Admin endpoints
 app.get('/api/admin/stop', (req, res) => {
-  const key = req.query.key;
-  if (key !== ADMIN_KEY) {
+  if (req.query.key !== ADMIN_KEY) {
     return res.status(401).json({ error: 'Invalid key' });
   }
-  
   conversationRunning = false;
   console.log('Conversation stopped by admin');
   res.json({ status: 'stopped', message: 'Conversation paused' });
 });
 
 app.get('/api/admin/start', (req, res) => {
-  const key = req.query.key;
-  if (key !== ADMIN_KEY) {
+  if (req.query.key !== ADMIN_KEY) {
     return res.status(401).json({ error: 'Invalid key' });
   }
   
   if (!conversationRunning) {
     if (currentConversation && backrooms.messages.length > 0) {
-      // Resume existing conversation
       conversationRunning = true;
       runConversation();
       console.log('Conversation resumed by admin');
       res.json({ status: 'resumed', message: 'Conversation resumed' });
     } else {
-      // Start new conversation
       startNewConversation();
       console.log('New conversation started by admin');
       res.json({ status: 'started', message: 'New conversation started' });
@@ -154,8 +177,7 @@ app.get('/api/admin/start', (req, res) => {
 });
 
 app.get('/api/admin/status', (req, res) => {
-  const key = req.query.key;
-  if (key !== ADMIN_KEY) {
+  if (req.query.key !== ADMIN_KEY) {
     return res.status(401).json({ error: 'Invalid key' });
   }
   
@@ -163,11 +185,12 @@ app.get('/api/admin/status', (req, res) => {
     running: conversationRunning,
     messageCount: backrooms.messages.length,
     maxMessages: MAX_MESSAGES,
-    clients: clients.size
+    clients: clients.size,
+    storage: useDatabase ? 'postgresql' : 'file'
   });
 });
 
-// Broadcast to all connected clients
+// Broadcast to all clients
 function broadcast(message) {
   const data = JSON.stringify(message);
   clients.forEach(ws => {
@@ -199,11 +222,10 @@ async function startNewConversation() {
   runConversation();
 }
 
-// Run the conversation loop
+// Run conversation loop
 async function runConversation() {
   while (conversationRunning && backrooms.messages.length < MAX_MESSAGES) {
     try {
-      // "Thinking" delay before generating
       const thinkDelay = 500 + Math.random() * 1500;
       await sleep(thinkDelay);
       
@@ -212,7 +234,6 @@ async function runConversation() {
       const message = await backrooms.generateNext();
       broadcast({ type: 'message', data: message });
       
-      // Wait for typing animation + pause
       const wordCount = message.content.split(' ').length;
       const typingTime = wordCount * 50;
       const pauseAfter = 1000 + Math.random() * 2000;
@@ -220,22 +241,20 @@ async function runConversation() {
       
     } catch (error) {
       console.error('Conversation error:', error);
-      await sleep(5000); // Wait and retry
+      await sleep(5000);
     }
   }
   
-  // Conversation ended
   if (backrooms.messages.length >= MAX_MESSAGES) {
     console.log('Conversation reached max messages, saving...');
     
-    const savedId = saveConversation({
+    const savedId = await saveConversation({
       prompt: currentConversation.prompt,
       messages: backrooms.messages
     });
     
     broadcast({ type: 'conversation_ended', id: savedId });
     
-    // Start new conversation after a pause
     await sleep(5000);
     startNewConversation();
   }
@@ -250,7 +269,6 @@ wss.on('connection', (ws) => {
   console.log('Client connected');
   clients.add(ws);
   
-  // Send current state to new client
   if (currentConversation) {
     ws.send(JSON.stringify({ 
       type: 'current_state',
@@ -265,10 +283,19 @@ wss.on('connection', (ws) => {
   });
 });
 
+// Start server
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-  console.log(`The Pharmaicy is open on http://localhost:${PORT}`);
+
+async function start() {
+  // Try to connect to database
+  useDatabase = await db.initDatabase();
   
-  // Start the first conversation
-  startNewConversation();
-});
+  server.listen(PORT, () => {
+    console.log(`The Pharmaicy is open on http://localhost:${PORT}`);
+    console.log(`Storage: ${useDatabase ? 'PostgreSQL' : 'File-based'}`);
+    
+    startNewConversation();
+  });
+}
+
+start();
