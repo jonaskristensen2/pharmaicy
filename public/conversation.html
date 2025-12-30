@@ -54,7 +54,7 @@
     
     function formatDate(timestamp) {
       const date = new Date(timestamp);
-      return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      return date.toISOString().replace('T', ' ').substring(0, 19) + ' UTC';
     }
     
     function escapeHtml(text) {

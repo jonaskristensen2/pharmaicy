@@ -46,8 +46,7 @@
         
         archiveList.innerHTML = conversations.map(conv => `
           <a href="/conversation.html?id=${conv.id}" class="conversation-card">
-            <div class="card-meta">${conv.messageCount} messages</div>
-            <div class="card-preview">${formatDate(conv.timestamp)}</div>
+            <div class="card-preview">${formatUTC(conv.timestamp)}</div>
           </a>
         `).join('');
         
@@ -56,15 +55,9 @@
       }
     }
     
-    function formatDate(timestamp) {
+    function formatUTC(timestamp) {
       const date = new Date(timestamp);
-      const now = new Date();
-      const diff = now - date;
-      
-      if (diff < 60000) return 'just now';
-      if (diff < 3600000) return Math.floor(diff / 60000) + ' min ago';
-      if (diff < 86400000) return Math.floor(diff / 3600000) + ' hours ago';
-      return date.toLocaleDateString();
+      return date.toISOString().replace('T', ' ').substring(0, 19) + ' UTC';
     }
     
     // Connect to get live preview
