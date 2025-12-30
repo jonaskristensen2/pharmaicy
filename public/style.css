@@ -264,6 +264,11 @@ body {
   letter-spacing: 1px;
 }
 
+.about-content .step {
+  color: var(--fg-dim);
+  font-style: italic;
+}
+
 .about-content .footer-section {
   padding-top: 30px;
   border-top: 1px solid var(--border);
