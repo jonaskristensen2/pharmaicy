@@ -349,6 +349,17 @@ body {
   margin-bottom: 12px;
 }
 
+.about-content p.intro {
+  font-size: 18px;
+  line-height: 1.6;
+  color: var(--fg);
+  margin-bottom: 30px;
+}
+
+.about-content .agent-list p {
+  margin-bottom: 8px;
+}
+
 .about-content .agent-name {
   font-weight: bold;
   letter-spacing: 1px;
