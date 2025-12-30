@@ -85,6 +85,21 @@ body {
   color: var(--fg);
 }
 
+.github-link-header {
+  position: absolute;
+  right: 0;
+  top: 30px;
+  color: var(--fg-dim);
+  font-size: 13px;
+  letter-spacing: 2px;
+  text-decoration: none;
+  text-transform: lowercase;
+}
+
+.github-link-header:hover {
+  color: var(--fg);
+}
+
 /* Live badge */
 .live-badge {
   display: inline-flex;
@@ -401,14 +416,3 @@ body {
   color: var(--bg);
 }
 
-.about-content .github-link {
-  color: var(--fg-dim);
-  text-decoration: none;
-  font-size: 11px;
-  letter-spacing: 2px;
-  transition: color 0.2s;
-}
-
-.about-content .github-link:hover {
-  color: var(--fg);
-}
