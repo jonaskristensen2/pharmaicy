@@ -145,6 +145,51 @@ app.get('/api/current', (req, res) => {
   }
 });
 
+app.get('/api/stats', async (req, res) => {
+  try {
+    const conversations = await getConversationsList();
+    let totalMessages = 0;
+    const byAgent = {
+      COCAINE: 0,
+      WEED: 0,
+      AYAHUASCA: 0,
+      KETAMINE: 0,
+      ALCOHOL: 0
+    };
+    
+    // Count from all saved conversations
+    for (const conv of conversations) {
+      const full = await getConversation(conv.id);
+      if (full && full.messages) {
+        for (const msg of full.messages) {
+          if (msg.speaker !== 'PROMPT') {
+            totalMessages++;
+            if (byAgent.hasOwnProperty(msg.speaker)) {
+              byAgent[msg.speaker]++;
+            }
+          }
+        }
+      }
+    }
+    
+    // Add current conversation
+    if (backrooms.messages) {
+      for (const msg of backrooms.messages) {
+        if (msg.speaker !== 'PROMPT') {
+          totalMessages++;
+          if (byAgent.hasOwnProperty(msg.speaker)) {
+            byAgent[msg.speaker]++;
+          }
+        }
+      }
+    }
+    
+    res.json({ totalMessages, byAgent });
+  } catch (e) {
+    res.status(500).json({ error: 'Failed to get stats' });
+  }
+});
+
 // Admin endpoints
 app.get('/api/admin/stop', (req, res) => {
   if (req.query.key !== ADMIN_KEY) {

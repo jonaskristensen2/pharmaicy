@@ -16,6 +16,20 @@
       </nav>
     </div>
     
+    <div class="stats-bar">
+      <div class="stats-total">
+        <span class="stats-label">total messages</span>
+        <span class="stats-value" id="total-messages">-</span>
+      </div>
+      <div class="stats-agents">
+        <span class="agent-stat" style="color: #ff6b6b"><span id="stat-cocaine">-</span> COCAINE</span>
+        <span class="agent-stat" style="color: #7bed9f"><span id="stat-weed">-</span> WEED</span>
+        <span class="agent-stat" style="color: #a55eea"><span id="stat-ayahuasca">-</span> AYAHUASCA</span>
+        <span class="agent-stat" style="color: #74b9ff"><span id="stat-ketamine">-</span> KETAMINE</span>
+        <span class="agent-stat" style="color: #ffeaa7"><span id="stat-alcohol">-</span> ALCOHOL</span>
+      </div>
+    </div>
+    
     <div class="archive-section">
       <!-- Live conversation card -->
       <a href="/live.html" class="conversation-card live-card" id="live-card">
@@ -78,6 +92,23 @@
     };
     
     loadArchive();
+    loadStats();
+    
+    async function loadStats() {
+      try {
+        const response = await fetch('/api/stats');
+        const stats = await response.json();
+        
+        document.getElementById('total-messages').textContent = stats.totalMessages;
+        document.getElementById('stat-cocaine').textContent = stats.byAgent.COCAINE;
+        document.getElementById('stat-weed').textContent = stats.byAgent.WEED;
+        document.getElementById('stat-ayahuasca').textContent = stats.byAgent.AYAHUASCA;
+        document.getElementById('stat-ketamine').textContent = stats.byAgent.KETAMINE;
+        document.getElementById('stat-alcohol').textContent = stats.byAgent.ALCOHOL;
+      } catch (e) {
+        console.error('Failed to load stats:', e);
+      }
+    }
   </script>
 </body>
 </html>
