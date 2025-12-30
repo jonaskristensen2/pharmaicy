@@ -74,7 +74,6 @@ function saveConversationFile(conversation) {
     messageCount: data.messageCount
   });
   
-  if (list.length > 50) list.pop();
   saveConversationsListFile(list);
   
   return id;

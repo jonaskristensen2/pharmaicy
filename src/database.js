@@ -82,7 +82,6 @@ export async function getConversationsList() {
     SELECT id, prompt, created_at as timestamp, message_count as "messageCount"
     FROM conversations
     ORDER BY created_at DESC
-    LIMIT 50
   `);
   
   return result.rows;
