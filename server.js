@@ -111,10 +111,38 @@ async function getConversation(id) {
 }
 
 // API endpoints
+const agentColors = {
+  COCAINE: '#ff6b6b',
+  WEED: '#7bed9f',
+  AYAHUASCA: '#a55eea',
+  KETAMINE: '#74b9ff',
+  ALCOHOL: '#ffeaa7'
+};
+
 app.get('/api/conversations', async (req, res) => {
   try {
     const list = await getConversationsList();
-    res.json(list);
+    
+    // Add dominant speaker and color to each conversation
+    const enriched = await Promise.all(list.map(async (conv) => {
+      const full = await getConversation(conv.id);
+      if (full && full.messages) {
+        const counts = {};
+        for (const msg of full.messages) {
+          if (msg.speaker !== 'PROMPT') {
+            counts[msg.speaker] = (counts[msg.speaker] || 0) + 1;
+          }
+        }
+        const dominant = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
+        if (dominant) {
+          conv.dominantSpeaker = dominant[0];
+          conv.dominantColor = agentColors[dominant[0]] || '#888';
+        }
+      }
+      return conv;
+    }));
+    
+    res.json(enriched);
   } catch (e) {
     res.status(500).json({ error: 'Failed to get conversations' });
   }

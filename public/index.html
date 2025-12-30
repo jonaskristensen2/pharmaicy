@@ -33,11 +33,13 @@
     <div class="archive-section">
       <!-- Live conversation card -->
       <a href="/live.html" class="conversation-card live-card" id="live-card">
-        <div class="card-status">
-          <span class="live-indicator"></span>
-          <span>live</span>
+        <div class="card-live-left">
+          <div class="card-status">
+            <span class="live-indicator"></span>
+            <span>live</span>
+          </div>
+          <div class="card-preview" id="live-preview">connecting...</div>
         </div>
-        <div class="card-preview" id="live-preview">connecting...</div>
       </a>
       
       <!-- Past conversations -->
@@ -59,8 +61,9 @@
         }
         
         archiveList.innerHTML = conversations.map(conv => `
-          <a href="/conversation.html?id=${conv.id}" class="conversation-card">
-            <div class="card-preview">${formatUTC(conv.timestamp)}</div>
+          <a href="/conversation.html?id=${conv.id}" class="conversation-card" style="border-left: 3px solid ${conv.dominantColor || '#333'}">
+            <div class="card-time">${formatUTC(conv.timestamp)}</div>
+            <div class="card-dominant" style="color: ${conv.dominantColor || '#888'}">${conv.dominantSpeaker || ''}</div>
           </a>
         `).join('');
         
