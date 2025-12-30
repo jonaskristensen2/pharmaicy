@@ -43,6 +43,10 @@
       </a>
       
       <!-- Past conversations -->
+      <div class="archive-header">
+        <span class="archive-label">past conversations</span>
+        <span class="archive-hint">click to read</span>
+      </div>
       <div id="archive-list"></div>
     </div>
   </div>
@@ -60,10 +64,10 @@
           return;
         }
         
-        archiveList.innerHTML = conversations.map(conv => `
+        archiveList.innerHTML = conversations.map((conv, index) => `
           <a href="/conversation.html?id=${conv.id}" class="conversation-card" style="border-left: 3px solid ${conv.dominantColor || '#333'}">
-            <div class="card-time">${formatUTC(conv.timestamp)}</div>
-            <div class="card-dominant" style="color: ${conv.dominantColor || '#888'}">${conv.dominantSpeaker || ''}</div>
+            <span class="card-number">#${conversations.length - index}</span>
+            <span class="card-time">${formatUTC(conv.timestamp)}</span>
           </a>
         `).join('');
         

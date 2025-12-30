@@ -167,6 +167,27 @@ body {
   gap: 12px;
 }
 
+.archive-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 0 8px 0;
+  margin-top: 20px;
+}
+
+.archive-label {
+  font-size: 11px;
+  color: var(--fg-dim);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+.archive-hint {
+  font-size: 10px;
+  color: var(--fg-dim);
+  font-style: italic;
+}
+
 .conversation-card {
   display: flex;
   justify-content: space-between;
@@ -198,15 +219,15 @@ body {
   gap: 8px;
 }
 
+.card-number {
+  font-size: 12px;
+  color: var(--fg-dim);
+  min-width: 40px;
+}
+
 .card-time {
   font-size: 12px;
   color: var(--fg-dim);
-}
-
-.card-dominant {
-  font-size: 10px;
-  letter-spacing: 2px;
-  text-transform: uppercase;
 }
 
 .card-status {
